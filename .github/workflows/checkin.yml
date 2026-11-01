@@ -1,0 +1,53 @@
+name: SMZDM Daily Check-in
+
+on:
+  schedule:
+    # GitHub Actions 使用 UTC 时间。UTC 00:50 = 北京时间 08:50
+    # 刻意避开整点：整点是 Actions 调度高峰，任务常被延迟甚至丢弃
+    - cron: "50 0 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smzdm-checkin
+  cancel-in-progress: false
+
+jobs:
+  checkin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install --no-cache-dir requests
+
+      - name: Random delay (0-25 min)
+        # 仅定时触发时打散执行时刻，降低固定时间特征；
+        # 手动触发（验证/补签）立即执行，便于快速反馈
+        if: github.event_name == 'schedule'
+        run: |
+          DELAY=$((RANDOM % 1500))
+          echo "本次随机延时 ${DELAY} 秒"
+          sleep $DELAY
+
+      - name: Run check-in
+        env:
+          SMZDM_COOKIE: ${{ secrets.SMZDM_COOKIE }}
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          SMZDM_SK: ${{ secrets.SMZDM_SK }}
+        run: python checkin.py
+
+      - name: Report status
+        if: always()
+        run: |
+          echo "签到任务结束，退出码：${{ job.status }}"
