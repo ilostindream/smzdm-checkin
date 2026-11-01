@@ -1,5 +1,7 @@
 # 什么值得买 每日自动签到（GitHub Actions 版）
 
+![什么值得买每日自动签到](assets/banner.png)
+
 在没有电脑开机的情况下，由 GitHub 云端每天定时执行 smzdm 签到，结果推送至微信。
 
 ## 工作原理
