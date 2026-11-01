@@ -50,6 +50,22 @@ def now_cst() -> str:
     return datetime.now(CST).strftime("%Y-%m-%d %H:%M:%S")
 
 
+def mask_name(name: str) -> str:
+    """账号脱敏，用于公开仓库的 Actions 日志
+
+    保留首尾字符，中间以 * 替代。日志在公开仓库中任何人可见，
+    因此昵称不宜明文输出。微信推送属私密通道，不受此限制。
+    """
+    if not name:
+        return "***"
+    if len(name) <= 3:
+        return name[0] + "*" * (len(name) - 1) if len(name) > 1 else "***"
+    keep = 2 if len(name) <= 6 else 3
+    if len(name) - keep * 2 <= 0:
+        keep = 1
+    return name[:keep] + "*" * (len(name) - keep * 2) + name[-keep:]
+
+
 def log(msg: str) -> None:
     print(f"[{now_cst()}] {msg}", flush=True)
 
@@ -288,7 +304,7 @@ def main() -> int:
         return EXIT_COOKIE_INVALID
 
     nickname = nickname_from_cookie(cookie) or info.get("nickname", "")
-    log(f"  ✓ 登录态有效  {nickname}")
+    log(f"  ✓ 登录态有效  {mask_name(nickname)}")
 
     time.sleep(random.uniform(1.5, 3.5))
 
