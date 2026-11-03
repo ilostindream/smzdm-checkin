@@ -2,9 +2,9 @@ name: SMZDM Daily Check-in
 
 on:
   schedule:
-    # GitHub Actions 使用 UTC 时间。UTC 22:30 = 北京时间次日 06:30
-    # 刻意避开整点：整点是 Actions 调度高峰，任务常被延迟甚至丢弃
-    - cron: "30 22 * * *"
+    # GitHub Actions 使用 UTC 时间。双保险：脚本幂等，第一槽成功后第二槽只会返回「今日已签」
+    - cron: "30 22 * * *"   # 北京 06:30（主槽，刻意避开整点高峰）
+    - cron: "10 23 * * *"   # 北京 07:10（备用槽，主槽被丢弃时兜底）
   workflow_dispatch: {}
 
 permissions:
