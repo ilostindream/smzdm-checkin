@@ -17,7 +17,8 @@ concurrency:
 jobs:
   checkin:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 必须大于「随机延时上限 25 分钟 + 执行时间」，否则长延时会被强制取消
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
