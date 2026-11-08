@@ -46,6 +46,7 @@ jobs:
           SMZDM_COOKIE: ${{ secrets.SMZDM_COOKIE }}
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
           SMZDM_SK: ${{ secrets.SMZDM_SK }}
+          SMZDM_SLOT: ${{ github.event.schedule }}
         run: python checkin.py
 
       - name: Report status
