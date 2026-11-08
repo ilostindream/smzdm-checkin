@@ -333,8 +333,12 @@ def main() -> int:
     result = do_checkin(cookie, token)
     log(f"  结果：{result.status} — {result.message}")
 
-    # 通知
-    if pushplus_token:
+    # 通知策略：SMZDM_SLOT 为工作流传入的触发 cron 原文。
+    # 主槽（凌晨 00:30，cron "30 16 * * *"）静默——成功/已签不推送，异常仍推送；
+    # 备用槽（07:10）与手动触发照常推送，作为当日签到成功的确认。
+    quiet_slot = (os.getenv("SMZDM_SLOT") or "").strip() == "30 16 * * *"
+    normal = result.status in ("SUCCESS", "ALREADY")
+    if pushplus_token and not (quiet_slot and normal):
         emoji = {"SUCCESS": "✅", "ALREADY": "✅", "COOKIE_INVALID": "⚠️"}.get(
             result.status, "❌"
         )
