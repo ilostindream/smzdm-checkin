@@ -135,29 +135,41 @@ def nickname_from_cookie(cookie: str) -> str:
 
 
 def fetch_user_info(cookie: str) -> dict:
-    """通过网页端个人中心判断 Cookie 是否有效"""
-    url = "https://zhiyou.smzdm.com/user/"
+    """校验登录态。
+
+    2026-11-18 起改为以 user-api token 接口为权威依据：
+    zhiyou.smzdm.com/user/ 页面已改为无条件 302 重定向（站点改版），
+    旧的 HTML 内容判断会把有效 Cookie 误判为失效。
+    """
+    # 优先：token 接口（error_code 0 = 登录态有效）
+    token, info = get_token(cookie)
+    code = str((info or {}).get("error_code", ""))
+    if code == "0" and token:
+        return {"valid": True, "nickname": nickname_from_cookie(cookie) or ""}
+    if code == "11111" or "登录" in ((info or {}).get("error_msg") or ""):
+        return {"valid": False, "error": "token 接口返回未登录，Cookie 已失效"}
+
+    # 兜底：token 接口异常（网络等）时退回网页判断
+    url = "https://www.smzdm.com/user/"
     headers = {
         "Cookie": cookie,
         "User-Agent": WEB_UA,
         "Accept": "text/html,application/xhtml+xml",
         "Accept-Language": "zh-CN,zh;q=0.9",
-        "Referer": "https://www.smzdm.com/",
     }
     try:
-        resp = requests.get(url, headers=headers, timeout=20, allow_redirects=True)
+        resp = requests.get(url, headers=headers, timeout=20, allow_redirects=False)
     except Exception as exc:
         return {"valid": None, "error": f"{type(exc).__name__}: {exc}"}
+
+    if resp.status_code in (301, 302):
+        # 重定向不能作为失效依据（站点改版后可能对所有人重定向），视为无法判定
+        return {"valid": None, "error": f"网页校验返回 HTTP {resp.status_code}，无法判定"}
 
     text = resp.text
     if resp.status_code != 200:
         return {"valid": None, "error": f"HTTP {resp.status_code}"}
 
-    # 未登录通常会被重定向到登录页或页面出现登录引导
-    if "登录" in text and "user_name" not in text and "个人中心" not in text:
-        return {"valid": False, "error": "页面提示登录，Cookie 已失效"}
-
-    # 尝试提取昵称
     import re
 
     name = ""
